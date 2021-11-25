@@ -1,0 +1,15 @@
+-- Run in cmd line from C:\Program Files\PostgreSQL\12\bin>
+use 'cd..' to go to next level
+use 'cd name' to get to desired level
+use 'dir' to see available directories
+raster2pgsql.exe -s 4326 -I -C -M -t 100x100 -F "C:\Users\KMC00\OneDrive - CEFAS\C6264 FINAL\DATA\FINAL_MODEL\FaunalCluster\FaunalClusterClip.tif" spatial.FaunalClusterClip | psql -d one_benthic -h azsclnxgis-ext01.postgres.database.azure.com -p 5432 -U editors_one_benthic@azsclnxgis-ext01
+
+## To open raster in R
+library(raster)
+library(rgdal)
+
+dsn="PG:dbname='plots' host=localhost user='test' password='test' port=5432 schema='gisdata' table='map' mode=2"
+
+ras <- readGDAL(dsn) # Get your file as SpatialGridDataFrame
+ras2 <- raster(ras,1) # Convert the first Band to Raster
+plot(ras2)
