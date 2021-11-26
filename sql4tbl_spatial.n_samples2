@@ -1,0 +1,15 @@
+drop table n_Samples2; 
+create table n_Samples2 as 
+
+with a as ( 
+
+select  count(c_square) over( partition by samplecode order by c_square ) , * from ( 
+	select a.*, c_square
+from  samples.sample a,
+ spatial.c_squares_all_pol_marine_fao_div_eez  b
+ where  st_intersects( a.geom, b.geom)  ) foo ) 
+ 
+ select * from (
+select  count (* ) , c_square  from a where count  = 1 
+group by c_Square ) b right join  ( Select * from spatial.c_squares_all_pol_marine_fao_div_eez where territory1 = 'United Kingdom' )    c
+using ( c_Square )
