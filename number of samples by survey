@@ -1,0 +1,9 @@
+## SQL Count number of samples by survey
+select 
+su.surveyname,
+COUNT(DISTINCT s.samplecode) 
+
+from associations.survey as su
+inner join associations.surveysample as ss on su.surveyname=ss.survey_surveyname
+inner join samples.sample as s on ss.sample_samplecode=s.samplecode
+group by su.surveyname
