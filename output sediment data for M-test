@@ -1,3 +1,5 @@
+#### POSTGRES QUERY TO GET DATA FOR M-TEST ####
+
 select
 svs.sample_samplecode,
 sast.station_stationcode,
@@ -17,3 +19,136 @@ svs.sample_samplecode,
 sast.station_stationcode
 order by sample_samplecode desc
 limit 100
+
+
+#### HERE'S THE RSCRIPT TO GET M_TEST DATA INTO WIDE FORMAT ####
+
+## Load packages
+library(shiny)
+library(leaflet)
+library(leaflet.extras)
+library(sf)
+library (RPostgres)
+library(DBI)
+library(plyr)
+library(dplyr)
+library(geojsonio)
+library(sp)
+library(ggplot2)
+library(config)
+library(pool)
+#__________________________________________________________________________________________
+#### CODE TO SOLVE ERROR: Missing dbQuoteLiteral methods for pool' ####
+
+##https://github.com/rstudio/pool/issues/96
+#' @importMethodsFrom DBI dbQuoteLiteral
+#' @importFrom pool poolCheckout poolReturn
+#' @export
+setMethod("dbQuoteLiteral", c("Pool", "ANY"),
+          function(conn, x, ...) {
+            # As of 2020-05-07, this is necessary due to an incompatiblity
+            # between packages `pool` (v 0.1.4.3) and `glue` (v >= 1.3.2).
+            # In v1.3.2, `glue` started using `dbQuoteLiteral`, which is
+            # currently not offered by `pool`, so creating it here.
+            connection <- pool::poolCheckout(conn)
+            on.exit(pool::poolReturn(connection))
+            DBI::dbQuoteLiteral(connection, x, ...)
+          }
+)
+
+#__________________________________________________________________________________________
+#### CREATE A CONNECTION TO OneBenthic LIVE ####
+Sys.setenv(R_CONFIG_ACTIVE = "one_benthic")
+
+dw <- config::get()
+
+pool <- dbPool(drv = dbDriver(dw$driver),
+               dbname = dw$database,
+               host = dw$server,
+               port =  dw$port,
+               user = dw$uid,
+               password = dw$pwd)
+#__________________________________________________________________________________________
+#### cREATE A CONNECTION TO THE DATABASE ####
+
+## create a connection to OneBenthic Live. Save the password
+#pw <- {
+#  "0neBenth!c5374"
+#}
+#logged= FALSE;
+
+## Load PostgreSQL driver
+#drv <- dbDriver("Postgres")
+
+## Create connection to the Postgres database. Note that "con" will be used later in each connection to the database
+#con =  dbConnect(drv, dbname = "one_benthic",
+#                 host = "azsclnxgis-ext01.postgres.database.azure.com",
+#                 port = 5432,
+#                 user = "editors_one_benthic@azsclnxgis-ext01 ",
+#                 password = pw)
+
+#rm(pw) # remove the password
+
+#__________________________________________________________________________________________
+#### GET POINT SAMPLE DATA (META & FAUNA) ####
+
+## Get data
+data = dbGetQuery(pool,
+"select
+svs.sample_samplecode,
+sast.station_stationcode,
+w.wwacr,
+sum(svs.percentage)
+
+from sediment_data.sedvarsample as svs 
+inner join sediment_data.sedvar as sv on svs.sedvar_sievesize = sv.sievesize
+inner join sediment_data.wentworth as w on w.wwid= sv.wentworth_id
+inner join samples.sample as s on s.samplecode = svs.sample_samplecode
+inner join associations.surveysample as ss on ss.sample_samplecode = s.samplecode
+inner join associations.survey as su on su.surveyname = ss.survey_surveyname
+inner join associations.samplestation as sast on sast.sample_samplecode = s.samplecode
+where su.surveyname = 'Thames Regional Seabed Monitoring Programme 2018'
+group by w.wwacr,
+svs.sample_samplecode,
+sast.station_stationcode
+order by sample_samplecode desc;
+")
+#WHERE datapubliclyavailable = TRUE
+## Check names
+View(data)
+# ______________________________________________________________________________
+#### SUMMARISE BY WENTWORTH CLASS ####
+
+## Drop the cobble rows
+data1 <- subset(data, wwacr!='Co')
+head(data1)
+dim(data)
+dim(data1)
+
+## Make wwacr a factor so data comes out in correct order
+data1$wwacr <- factor(data1$wwacr,levels = c("cG", "mG", "fG","cS", "mS", "fS","SC"))
+
+## Take only relevant columns (stationcode, fraction, perc)
+data2 <- data1[,2:4]
+head(data2)
+## Check for rows with NA in col wwacr
+#is.na(data1)
+#data2[is.na(data2$wwacr),]
+
+## Remove NAs introduced by making wentworth classes a factor
+#data2 <- na.omit(data2)
+#data2
+
+# ______________________________________________________________________________
+#### GET DATA IN FORMAT for MTEST ####
+
+library(tidyr)
+data_wide <- spread(data2, key = wwacr, value = sum)
+head(data_wide)
+
+## Update col name
+colnames(data_wide)[1] <- 'RSMP station code'
+# ______________________________________________________________________________
+#### OUTPUT FILE AS CSV ###
+
+write.csv(data_wide,"C:/Users/KMC00/OneDrive - CEFAS/working/mtest_data.csv")
