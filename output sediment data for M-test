@@ -1,5 +1,6 @@
 select
 svs.sample_samplecode,
+sast.station_stationcode,
 w.wwacr,
 sum(svs.percentage)
 
@@ -9,8 +10,10 @@ inner join sediment_data.wentworth as w on w.wwid= sv.wentworth_id
 inner join samples.sample as s on s.samplecode = svs.sample_samplecode
 inner join associations.surveysample as ss on ss.sample_samplecode = s.samplecode
 inner join associations.survey as su on su.surveyname = ss.survey_surveyname
+inner join associations.samplestation as sast on sast.sample_samplecode = s.samplecode
 where su.surveyname = 'Thames Regional Seabed Monitoring Programme 2018'
 group by w.wwacr,
-svs.sample_samplecode
+svs.sample_samplecode,
+sast.station_stationcode
 order by sample_samplecode desc
 limit 100
