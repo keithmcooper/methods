@@ -151,4 +151,4 @@ colnames(data_wide)[1] <- 'RSMP station code'
 # ______________________________________________________________________________
 #### OUTPUT FILE AS CSV ###
 
-write.csv(data_wide,"C:/Users/KMC00/OneDrive - CEFAS/working/mtest_data.csv")
+write.csv(data_wide,"C:/Users/KMC00/OneDrive - CEFAS/working/mtest_data.csv",row.names=FALSE)
