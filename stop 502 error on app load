@@ -1,0 +1,6 @@
+library(shinyjs)
+
+refresh()
+
+# make sure session in Server command
+server <- function(input, output, session){
