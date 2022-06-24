@@ -1,6 +1,8 @@
-library(shinyjs)
+
+## This worked for NNS app.
+library(shinyjs) # not added to NNS app
 
 refresh()
 
-# make sure session in Server command
+# make sure session in Server command. 
 server <- function(input, output, session){
